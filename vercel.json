@@ -1,0 +1,28 @@
+{
+  "functions": {
+    "index.html": {
+      "runtime": "@vercel/static"
+    }
+  },
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "Permissions-Policy",
+          "value": "microphone=(self)"
+        },
+        {
+          "key": "Feature-Policy",
+          "value": "microphone 'self'"
+        }
+      ]
+    }
+  ]
+}

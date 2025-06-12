@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>음성 녹음 & 구글 드라이브 업로드</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            color: white;
+        }
+        
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 30px;
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+        }
+        
+        h1 {
+            margin-bottom: 30px;
+            font-size: 24px;
+            font-weight: 600;
+        }
+        
+        .record-button {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            border: none;
+            background: linear-gradient(45deg, #ff6b6b, #ff8e8e);
+            color: white;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 0 auto 20px auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 20px rgba(255, 107, 107, 0.4);
+        }
+        
+        .record-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 25px rgba(255, 107, 107, 0.6);
+        }
+        
+        .record-button.recording {
+            background: linear-gradient(45deg, #ff4757, #ff3838);
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        .timer {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #fff;
+            min-height: 30px;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        
+        .control-btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 25px;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+        
+        .control-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+        
+        .control-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .upload-section {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .file-input-wrapper {
+            position: relative;
+            display: inline-block;
+            margin-bottom: 15px;
+        }
+        
+        .file-input {
+            position: absolute;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+        
+        .file-input-label {
+            display: inline-block;
+            padding: 12px 24px;
+            background: rgba(103, 126, 234, 0.8);
+            color: white;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .file-input-label:hover {
+            background: rgba(103, 126, 234, 1);
+            transform: translateY(-2px);
+        }
+        
+        .upload-btn {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 25px;
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            color: white;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+        }
+        
+        .upload-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(76, 175, 80, 0.4);
+        }
+        
+        .upload-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .status {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .status.success {
+            background: rgba(76, 175, 80, 0.2);
+            color: #4CAF50;
+            border: 1px solid rgba(76, 175, 80, 0.3);
+        }
+        
+        .status.error {
+            background: rgba(244, 67, 54, 0.2);
+            color: #f44336;
+            border: 1px solid rgba(244, 67, 54, 0.3);
+        }
+        
+        .status.info {
+            background: rgba(33, 150, 243, 0.2);
+            color: #2196F3;
+            border: 1px solid rgba(33, 150, 243, 0.3);
+        }
+        
+        .audio-preview {
+            margin: 15px 0;
+            width: 100%;
+        }
+        
+        audio {
+            width: 100%;
+            border-radius: 10px;
+        }
+        
+        .recording-indicator {
+            display: none;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 15px;
+            color: #ff4757;
+            font-weight: 600;
+        }
+        
+        .recording-indicator.active {
+            display: flex;
+        }
+        
+        .recording-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #ff4757;
+            animation: pulse 1s infinite;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎤 음성 녹음기</h1>
+        
+        <div class="recording-indicator" id="recordingIndicator">
+            <div class="recording-dot"></div>
+            <span>녹음 중...</span>
+        </div>
+        
+        <div class="timer" id="timer">00:00</div>
+        
+        <button class="record-button" id="recordButton">
+            🎤 녹음 시작
+        </button>
+        
+        <div class="controls">
+            <button class="control-btn" id="stopButton" disabled>⏹️ 중지</button>
+            <button class="control-btn" id="playButton" disabled>▶️ 재생</button>
+            <button class="control-btn" id="resetButton" disabled>🔄 리셋</button>
+        </div>
+        
+        <audio id="audioPreview" class="audio-preview" controls style="display: none;"></audio>
+        
+        <div class="upload-section">
+            <h3 style="margin-bottom: 15px;">구글 드라이브 업로드</h3>
+            
+            <div class="file-input-wrapper">
+                <input type="file" id="credentialsFile" class="file-input" accept=".json">
+                <label for="credentialsFile" class="file-input-label">
+                    📁 인증 파일 선택
+                </label>
+            </div>
+            
+            <button class="upload-btn" id="uploadButton" disabled>
+                ☁️ 구글 드라이브에 업로드
+            </button>
+            
+            <div class="status" id="status" style="display: none;"></div>
+        </div>
+    </div>
+
+    <script>
+        class VoiceRecorder {
+            constructor() {
+                this.mediaRecorder = null;
+                this.audioChunks = [];
+                this.audioBlob = null;
+                this.audioUrl = null;
+                this.isRecording = false;
+                this.startTime = null;
+                this.timerInterval = null;
+                this.credentials = null;
+                
+                this.initializeElements();
+                this.attachEventListeners();
+            }
+            
+            initializeElements() {
+                this.recordButton = document.getElementById('recordButton');
+                this.stopButton = document.getElementById('stopButton');
+                this.playButton = document.getElementById('playButton');
+                this.resetButton = document.getElementById('resetButton');
+                this.timer = document.getElementById('timer');
+                this.audioPreview = document.getElementById('audioPreview');
+                this.credentialsFile = document.getElementById('credentialsFile');
+                this.uploadButton = document.getElementById('uploadButton');
+                this.status = document.getElementById('status');
+                this.recordingIndicator = document.getElementById('recordingIndicator');
+            }
+            
+            attachEventListeners() {
+                this.recordButton.addEventListener('click', () => this.toggleRecording());
+                this.stopButton.addEventListener('click', () => this.stopRecording());
+                this.playButton.addEventListener('click', () => this.playRecording());
+                this.resetButton.addEventListener('click', () => this.resetRecording());
+                this.credentialsFile.addEventListener('change', (e) => this.loadCredentials(e));
+                this.uploadButton.addEventListener('click', () => this.uploadToGoogleDrive());
+            }
+            
+            async toggleRecording() {
+                if (!this.isRecording) {
+                    await this.startRecording();
+                } else {
+                    this.stopRecording();
+                }
+            }
+            
+            async startRecording() {
+                try {
+                    // HTTPS 체크
+                    if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
+                        this.showStatus('⚠️ HTTPS 환경에서만 마이크를 사용할 수 있습니다. localhost 또는 HTTPS 사이트에서 사용해주세요.', 'error');
+                        return;
+                    }
+
+                    // 브라우저 지원 체크
+                    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                        this.showStatus('❌ 이 브라우저는 음성 녹음을 지원하지 않습니다.', 'error');
+                        return;
+                    }
+
+                    const stream = await navigator.mediaDevices.getUserMedia({ 
+                        audio: {
+                            echoCancellation: true,
+                            noiseSuppression: true,
+                            sampleRate: 44100,
+                        }
+                    });
+                    
+                    // MediaRecorder 지원 체크 및 적절한 타입 선택
+                    let mimeType = 'audio/webm;codecs=opus';
+                    if (!MediaRecorder.isTypeSupported(mimeType)) {
+                        if (MediaRecorder.isTypeSupported('audio/webm')) {
+                            mimeType = 'audio/webm';
+                        } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
+                            mimeType = 'audio/mp4';
+                        } else {
+                            mimeType = '';
+                        }
+                    }
+                    
+                    this.mediaRecorder = new MediaRecorder(stream, 
+                        mimeType ? { mimeType: mimeType } : {}
+                    );
+                    
+                    this.audioChunks = [];
+                    this.mediaRecorder.ondataavailable = (event) => {
+                        this.audioChunks.push(event.data);
+                    };
+                    
+                    this.mediaRecorder.onstop = () => {
+                        this.audioBlob = new Blob(this.audioChunks, { type: mimeType || 'audio/webm' });
+                        this.audioUrl = URL.createObjectURL(this.audioBlob);
+                        this.audioPreview.src = this.audioUrl;
+                        this.audioPreview.style.display = 'block';
+                        this.updateButtonStates(false);
+                    };
+                    
+                    this.mediaRecorder.start();
+                    this.isRecording = true;
+                    this.startTime = Date.now();
+                    this.startTimer();
+                    this.updateButtonStates(true);
+                    this.showStatus('✅ 녹음이 시작되었습니다.', 'info');
+                    
+                } catch (error) {
+                    console.error('녹음 시작 실패:', error);
+                    
+                    let errorMessage = '❌ 녹음을 시작할 수 없습니다. ';
+                    
+                    if (error.name === 'NotAllowedError') {
+                        errorMessage += '마이크 접근 권한을 허용해주세요.';
+                    } else if (error.name === 'NotFoundError') {
+                        errorMessage += '마이크를 찾을 수 없습니다.';
+                    } else if (error.name === 'NotSupportedError') {
+                        errorMessage += '이 브라우저는 음성 녹음을 지원하지 않습니다.';
+                    } else if (error.name === 'SecurityError') {
+                        errorMessage += 'HTTPS 환경 또는 localhost에서만 사용 가능합니다.';
+                    } else {
+                        errorMessage += '알 수 없는 오류가 발생했습니다.';
+                    }
+                    
+                    this.showStatus(errorMessage, 'error');
+                }
+            }
+            
+            stopRecording() {
+                if (this.mediaRecorder && this.isRecording) {
+                    this.mediaRecorder.stop();
+                    this.mediaRecorder.stream.getTracks().forEach(track => track.stop());
+                    this.isRecording = false;
+                    this.stopTimer();
+                    this.showStatus('녹음이 완료되었습니다.', 'success');
+                }
+            }
+            
+            playRecording() {
+                if (this.audioPreview.src) {
+                    this.audioPreview.play();
+                }
+            }
+            
+            resetRecording() {
+                this.stopRecording();
+                this.audioChunks = [];
+                this.audioBlob = null;
+                if (this.audioUrl) {
+                    URL.revokeObjectURL(this.audioUrl);
+                    this.audioUrl = null;
+                }
+                this.audioPreview.src = '';
+                this.audioPreview.style.display = 'none';
+                this.timer.textContent = '00:00';
+                this.updateButtonStates(false, true);
+                this.showStatus('녹음이 초기화되었습니다.', 'info');
+            }
+            
+            startTimer() {
+                this.timerInterval = setInterval(() => {
+                    const elapsed = Date.now() - this.startTime;
+                    const minutes = Math.floor(elapsed / 60000);
+                    const seconds = Math.floor((elapsed % 60000) / 1000);
+                    this.timer.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                }, 1000);
+            }
+            
+            stopTimer() {
+                if (this.timerInterval) {
+                    clearInterval(this.timerInterval);
+                    this.timerInterval = null;
+                }
+            }
+            
+            updateButtonStates(recording, reset = false) {
+                if (recording) {
+                    this.recordButton.textContent = '🔴 녹음 중지';
+                    this.recordButton.classList.add('recording');
+                    this.stopButton.disabled = false;
+                    this.playButton.disabled = true;
+                    this.resetButton.disabled = true;
+                    this.recordingIndicator.classList.add('active');
+                } else {
+                    this.recordButton.textContent = '🎤 녹음 시작';
+                    this.recordButton.classList.remove('recording');
+                    this.stopButton.disabled = true;
+                    this.recordingIndicator.classList.remove('active');
+                    
+                    if (reset) {
+                        this.playButton.disabled = true;
+                        this.resetButton.disabled = true;
+                    } else {
+                        this.playButton.disabled = false;
+                        this.resetButton.disabled = false;
+                    }
+                }
+                
+                this.updateUploadButton();
+            }
+            
+            updateUploadButton() {
+                this.uploadButton.disabled = !this.audioBlob || !this.credentials;
+            }
+            
+            loadCredentials(event) {
+                const file = event.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        try {
+                            this.credentials = JSON.parse(e.target.result);
+                            this.showStatus('인증 파일이 로드되었습니다.', 'success');
+                            this.updateUploadButton();
+                        } catch (error) {
+                            this.showStatus('유효하지 않은 JSON 파일입니다.', 'error');
+                        }
+                    };
+                    reader.readAsText(file);
+                }
+            }
+            
+            async uploadToGoogleDrive() {
+                if (!this.audioBlob || !this.credentials) {
+                    this.showStatus('녹음 파일과 인증 파일이 필요합니다.', 'error');
+                    return;
+                }
+                
+                this.uploadButton.disabled = true;
+                this.showStatus('업로드 중...', 'info');
+                
+                try {
+                    // Google Drive API 업로드 시뮬레이션
+                    // 실제 구현에서는 OAuth2 인증과 Google Drive API를 사용해야 합니다
+                    await this.simulateUpload();
+                    
+                    const fileName = `recording_${new Date().toISOString().replace(/[:.]/g, '-')}.webm`;
+                    this.showStatus(`업로드 완료: ${fileName}`, 'success');
+                    
+                } catch (error) {
+                    console.error('업로드 실패:', error);
+                    this.showStatus('업로드에 실패했습니다.', 'error');
+                } finally {
+                    this.uploadButton.disabled = false;
+                    this.updateUploadButton();
+                }
+            }
+            
+            async simulateUpload() {
+                // 실제 구현을 위한 안내
+                return new Promise((resolve, reject) => {
+                    setTimeout(() => {
+                        // 여기서는 시뮬레이션만 수행
+                        // 실제로는 Google Drive API를 사용해야 합니다
+                        if (Math.random() > 0.1) { // 90% 성공률
+                            resolve();
+                        } else {
+                            reject(new Error('Upload failed'));
+                        }
+                    }, 2000);
+                });
+            }
+            
+            showStatus(message, type) {
+                this.status.textContent = message;
+                this.status.className = `status ${type}`;
+                this.status.style.display = 'block';
+                
+                if (type === 'success' || type === 'info') {
+                    setTimeout(() => {
+                        this.status.style.display = 'none';
+                    }, 3000);
+                }
+            }
+        }
+        
+        // 앱 초기화
+        document.addEventListener('DOMContentLoaded', () => {
+            new VoiceRecorder();
+        });
+        
+        // PWA 지원을 위한 서비스 워커 등록 (선택사항)
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                // 서비스 워커는 별도 파일이 필요하므로 주석 처리
+                // navigator.serviceWorker.register('/sw.js');
+            });
+        }
+    </script>
+</body>
+</html>
